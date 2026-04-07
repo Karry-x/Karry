@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Challan Management System</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="print.css" media="print">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <header>
+        <h1>Delivery Challan Management System</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><button id="tab-create">Create Challan</button></li>
+            <li><button id="tab-customers">Customers</button></li>
+            <li><button id="tab-history">History</button></li>
+        </ul>
+    </nav>
+    <main id="app">
+        <!-- Dynamic content will be injected here -->
+    </main>
+    <footer>
+        <p>&copy; 2026 VNR Seeds Private Limited</p>
+    </footer>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(() => console.log('Service Worker registered successfully.'))
+                .catch(err => console.error('Service Worker registration failed:', err));
+        }
+    </script>
+</body>
+</html>
