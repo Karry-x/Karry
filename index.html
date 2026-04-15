@@ -80,17 +80,58 @@
     const LOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABt0lEQVR4nO2a0W3CMBBFvyQYgA4wAEdwAEdwAEdwAEdwAEdwAF7mWBLQrmfEU5M0sQfDff7d2aY8rx7h6fX8fO2kQYQQQgghhBBC6Bf7f8Q6w9N4AZh8mB8j2x0Qh8E7wA5wV4AXgC6kR0x0m0xj8QvJfB3gA+Af4Y+Sl7R9y+g6z3zQqWQ8sVf7Xv1zRrYwU3C4k8Qx7j8B6C9N0f8l+u8w8wO7kO5WQbH7hY8lJ8k8K4+3wXrQ8fQ4yq6m7g7J5M9yQv5Pq0A8m3yJ6v0LQ5u8K2G5b9jv7H8Q6i1c4Q7E3J6X7Qw5qkQpYQjv5mM6r1j6v0R4t3Qx0Vf8x5wP2s7S6k9XQn4V6m2m6Y5b5n4k2q5x0g+0sY1j8H2EJ5i7b8S9o2z3Q8l2f7n4xjv0m7j9uYw3YH7m5wX8m8q8r2v9n9k8A1d2hLQh4g5hXf8h0m0y8d7r2LwD3mXQ7oA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2hD/AbYy3cYg8x+2AAAAAElFTkSuQmCC';
     const C={name:'VNR Seeds Private Limited',addr:'Corporate Centre, Canal Road Crossing, Ring Road No. 01, Raipur-492006 (C.G.)',tel:'+91 0771-4350005-10',email:'info@vnrseeds.com',web:'www.vnrseeds.com'};
     const K={ch:'vnr_challans',pt:'vnr_parties',tr:'vnr_transporters',pw:'vnr_app_pwd',bk:'vnr_last_backup',sz:'vnr_backup_snooze'},S='vnr_app_session',DEF='vnr1234';
+    const PASSWORD_PREFIX='pbkdf2:',LEGACY_SHA_PREFIX='sha256:',PBKDF2_ITERATIONS=120000,BACKUP_REMINDER_DAYS=7,BACKUP_SNOOZE_DAYS=2;
     let editRef=false,editParty=null,editTrans=null,editChallanRef=null;
     const $=id=>document.getElementById(id),J=v=>{try{return JSON.parse(v)}catch{return null}},g=(k,d=[])=>J(localStorage.getItem(k))||d,s=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
     const two=n=>String(n).padStart(2,'0'),todayISO=()=>{const d=new Date();return `${d.getFullYear()}-${two(d.getMonth()+1)}-${two(d.getDate())}`},fdate=d=>new Date(d||Date.now()).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
     const esc=t=>String(t||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     const fy=d=>{const x=new Date(d||todayISO()),y=x.getFullYear(),m=x.getMonth()+1,st=m>=4?y:y-1;return `${String(st).slice(-2)}-${String(st+1).slice(-2)}`};
     const mon=d=>['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][new Date(d||todayISO()).getMonth()];
-    const pwd=()=>localStorage.getItem(K.pw)||DEF,ok=()=>sessionStorage.getItem(S)==='ok';
+    const ok=()=>sessionStorage.getItem(S)==='ok';
+    async function sha256(text){
+      const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+      return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    function randomHex(bytes=16){
+      const arr=new Uint8Array(bytes);crypto.getRandomValues(arr);
+      return [...arr].map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    async function pbkdf2Hash(password,saltHex){
+      const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+      const salt=new Uint8Array(saltHex.match(/.{2}/g).map(h=>parseInt(h,16)));
+      const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:PBKDF2_ITERATIONS,hash:'SHA-256'},key,256);
+      return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    async function ensurePasswordFormat(){
+      const stored=localStorage.getItem(K.pw);
+      if(!stored){await setPasswordSecure(DEF);return;}
+      if(stored.startsWith(PASSWORD_PREFIX) || stored.startsWith(LEGACY_SHA_PREFIX))return;
+      await setPasswordSecure(stored);
+    }
+    async function verifyPassword(input){
+      const stored=localStorage.getItem(K.pw);
+      if(!stored)return input===DEF;
+      if(stored.startsWith(PASSWORD_PREFIX)){
+        const [,saltHex,hash]=stored.split(':');
+        if(!saltHex || !hash)return false;
+        return hash===await pbkdf2Hash(input,saltHex);
+      }
+      if(stored.startsWith(LEGACY_SHA_PREFIX))return stored===`${LEGACY_SHA_PREFIX}${await sha256(input)}`;
+      return false;
+    }
+    async function setPasswordSecure(password){
+      const saltHex=randomHex(16);
+      const hash=await pbkdf2Hash(password,saltHex);
+      localStorage.setItem(K.pw,`${PASSWORD_PREFIX}${saltHex}:${hash}`);
+    }
+    async function migratePasswordIfNeeded(plainInput){
+      const stored=localStorage.getItem(K.pw)||'';
+      if(!stored.startsWith(PASSWORD_PREFIX))await setPasswordSecure(plainInput);
+    }
     function t(msg){const x=$('toast');x.textContent=msg;x.classList.add('show');clearTimeout(t._);t._=setTimeout(()=>x.classList.remove('show'),3000)}
     function ref(d){return `VSPL/${mon(d)}/${fy(d)}/${String(g(K.ch).length+1).padStart(3,'0')}`}
     function setLogin(){ $('login-ov').classList.toggle('hidden',ok()); if(!ok()) setTimeout(()=>$('login-pwd').focus(),60); }
-    function login(){const v=$('login-pwd').value,e=$('login-err'),b=$('login-box');if(v===pwd()){sessionStorage.setItem(S,'ok');$('login-pwd').value='';e.textContent='';setLogin();t('Login successful')}else{e.textContent='Wrong password. Please try again.';b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake')}}
+    async function login(){const v=$('login-pwd').value,e=$('login-err'),b=$('login-box');if(await verifyPassword(v)){await migratePasswordIfNeeded(v);sessionStorage.setItem(S,'ok');$('login-pwd').value='';e.textContent='';setLogin();t('Login successful')}else{e.textContent='Wrong password. Please try again.';b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake')}}
     function logout(){if(confirm('Logout now?')){sessionStorage.removeItem(S);location.reload()}}
     function nav(){
       const d=[['create','➕ Create Challan'],['history','📋 History'],['parties','🏢 Parties'],['transporters','🚚 Transporters'],['backup','💾 Backup/Restore'],['password','🔑 Change Password'],['logout','🚪 Logout']];
@@ -172,7 +213,7 @@
     }
     function pwdModal(){
       const o=$('pwd-ov');o.classList.remove('hidden');o.innerHTML=`<div class="modal" style="width:min(420px,100%)"><h3>Change Password</h3><div class="field"><label>Current Password</label><input id="c1" type="password"></div><div class="field" style="margin-top:8px"><label>New Password (min 4 chars)</label><input id="c2" type="password"></div><div class="field" style="margin-top:8px"><label>Confirm Password</label><input id="c3" type="password"></div><div class="err" id="cerr"></div><div class="row" style="justify-content:flex-end"><button class="btn" id="cc">Cancel</button><button class="btn primary" id="cs">Save</button></div></div>`;
-      $('cc').onclick=()=>o.classList.add('hidden');$('cs').onclick=()=>{const a=$('c1').value,b=$('c2').value,c=$('c3').value,e=$('cerr');if(a!==pwd())return e.textContent='Current password is incorrect';if(b.length<4)return e.textContent='New password must be at least 4 characters';if(b!==c)return e.textContent='Confirm password does not match';localStorage.setItem(K.pw,b);o.classList.add('hidden');t('Password changed')};
+      $('cc').onclick=()=>o.classList.add('hidden');$('cs').onclick=async()=>{const a=$('c1').value,b=$('c2').value,c=$('c3').value,e=$('cerr');if(!(await verifyPassword(a)))return e.textContent='Current password is incorrect';if(b.length<4)return e.textContent='New password must be at least 4 characters';if(b!==c)return e.textContent='Confirm password does not match';await setPasswordSecure(b);o.classList.add('hidden');t('Password changed')};
     }
     function backupModal(){
       const o=$('backup-ov');o.classList.remove('hidden');const ch=g(K.ch),pt=g(K.pt),tr=g(K.tr),lb=localStorage.getItem(K.bk);
@@ -181,10 +222,10 @@
       const dz=$('dz'),bf=$('bf'),rv=$('rv');let fileData=null;
       const parse=f=>{if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||d.app!=='VNR_Delivery_Challan_System')throw Error('Invalid backup source');if(!Array.isArray(d.challans)||!Array.isArray(d.parties)||!Array.isArray(d.transporters))throw Error('Invalid backup structure');fileData=d;rv.innerHTML=`Will restore: <strong>${d.challans.length}</strong> challans, <strong>${d.parties.length}</strong> parties, <strong>${d.transporters.length}</strong> transporters.`;$('br').disabled=false;t('Backup file validated')}catch(e){fileData=null;$('br').disabled=true;rv.textContent=`Validation failed: ${e.message}`}};r.readAsText(f)};
       bf.onchange=()=>parse(bf.files[0]);dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};dz.ondragleave=()=>dz.classList.remove('drag');dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');parse(e.dataTransfer.files[0])};
-      $('br').onclick=()=>{if(!fileData)return;if(!confirm('This will overwrite current data. Continue?'))return;s(K.ch,fileData.challans);s(K.pt,fileData.parties);s(K.tr,fileData.transporters);if(fileData.password)localStorage.setItem(K.pw,fileData.password);localStorage.setItem(K.bk,new Date().toISOString());o.classList.add('hidden');renderAll();t('Backup restored')};
+      $('br').onclick=async()=>{if(!fileData)return;if(!confirm('This will overwrite current data. Continue?'))return;s(K.ch,fileData.challans);s(K.pt,fileData.parties);s(K.tr,fileData.transporters);localStorage.setItem(K.bk,new Date().toISOString());o.classList.add('hidden');renderAll();t('Backup restored')};
     }
     function backupExport(){
-      const p={app:'VNR_Delivery_Challan_System',version:'1.0',exportedAt:new Date().toISOString(),company:C.name,challans:g(K.ch),parties:g(K.pt),transporters:g(K.tr),password:pwd()};
+      const p={app:'VNR_Delivery_Challan_System',version:'1.0',exportedAt:new Date().toISOString(),company:C.name,challans:g(K.ch),parties:g(K.pt),transporters:g(K.tr)};
       dl(`VNR_Backup_${todayISO()}.json`,JSON.stringify(p,null,2),'application/json');localStorage.setItem(K.bk,new Date().toISOString());localStorage.removeItem(K.sz);backupReminder();t('Backup exported')
     }
     function csv(){
@@ -202,14 +243,14 @@
     }
     function backupReminder(){
       const x=$('backup-rem'),last=localStorage.getItem(K.bk),sz=localStorage.getItem(K.sz),now=new Date();let show=false;
-      if(!last)show=true;else show=((now-new Date(last))/(1000*60*60*24))>=7;if(sz&&now<new Date(sz))show=false;
+      if(!last)show=true;else show=((now-new Date(last))/(1000*60*60*24))>=BACKUP_REMINDER_DAYS;if(sz&&now<new Date(sz))show=false;
       if(!show){x.classList.add('hidden');x.innerHTML='';return}
       x.classList.remove('hidden');x.innerHTML=`<div><strong>Backup reminder:</strong> It has been over 7 days since last backup.</div><div class="row"><button class="btn small" id="bn">Backup Now</button><button class="btn small" id="bl">Remind Later</button></div>`;
-      $('bn').onclick=()=>backupModal();$('bl').onclick=()=>{localStorage.setItem(K.sz,new Date(Date.now()+2*24*60*60*1000).toISOString());backupReminder()}
+      $('bn').onclick=()=>backupModal();$('bl').onclick=()=>{localStorage.setItem(K.sz,new Date(Date.now()+BACKUP_SNOOZE_DAYS*24*60*60*1000).toISOString());backupReminder()}
     }
     function bind(){ $('login-btn').onclick=login;$('login-pwd').onkeydown=e=>{if(e.key==='Enter')login()};$('print-close').onclick=()=>$('print-ov').classList.add('hidden');$('print-go').onclick=()=>window.print();$('today').textContent=`Today: ${fdate()}`;$('logo-top').src=LOGO;$('logo-login').src=LOGO }
     function renderAll(){createPage();historyPage();partiesPage();transportersPage();refreshDD();backupReminder();show('create')}
-    function init(){nav();bind();renderAll();setLogin()}
+    async function init(){await ensurePasswordFormat();nav();bind();renderAll();setLogin()}
     init();
   </script>
 </body>
