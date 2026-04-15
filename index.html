@@ -1,38 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Challan Management System</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="print.css" media="print">
-    <script src="app.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VNR Delivery Challan System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--green:#1a7a3c;--greenLight:#e6f4ec;--amber:#f59e0b;--red:#ef4444;--bg:#f0f5f2;--card:#fff;--text:#12331a;--muted:#5a7763;--border:#d8e7dd;--top:72px;--left:220px}
+    *{box-sizing:border-box}html,body{margin:0;padding:0;font-family:"Plus Jakarta Sans",sans-serif;background:var(--bg);color:var(--text)}
+    .mono{font-family:"JetBrains Mono",monospace}.hidden{display:none!important}
+    .topbar{position:fixed;top:0;left:0;right:0;height:var(--top);background:var(--green);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;z-index:30}
+    .brand{display:flex;align-items:center;gap:10px}.brand img{width:44px;height:44px;border-radius:8px;background:#fff}
+    .brand .t{font-weight:800;font-size:16px}.brand .s{font-size:12px;opacity:.9}.today{font-size:12px}
+    .wrap{padding-top:var(--top);display:flex;min-height:100vh}
+    .snav{display:none;position:fixed;top:var(--top);left:0;bottom:0;width:var(--left);background:#fff;border-right:1px solid var(--border);padding:12px;overflow:auto}
+    .content{width:100%;padding:14px;padding-bottom:84px;animation:f .2s ease}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 6px 20px rgba(15,66,28,.06);padding:14px;margin-bottom:12px}
+    .page{display:none}.page.active{display:block}
+    .grid{display:grid;gap:10px}.g2,.g3{grid-template-columns:1fr}.row{display:flex;flex-wrap:wrap;gap:10px}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:130px}
+    label{font-size:12px;font-weight:700;color:#2a5036}h2,h3{margin:0 0 10px}.muted{font-size:12px;color:var(--muted)}
+    input,select,textarea,button{font-family:inherit}
+    input,select,textarea{width:100%;padding:12px 14px;border:1.5px solid #c8dbcf;border-radius:8px;outline:none;background:#fff}
+    input:focus,select:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(26,122,60,.15)}
+    input[readonly]{background:#f7fbf8}textarea{min-height:86px;resize:vertical}
+    .btn{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:10px;padding:10px 13px;font-weight:700;cursor:pointer}
+    .btn.primary{background:var(--green);color:#fff;border-color:var(--green)}.btn.warn{background:#fff7e7;border-color:#f8d89a;color:#8a5b05}.btn.red{background:#fff1f1;border-color:#f8caca;color:#a31f1f}.btn.small{padding:8px 10px;font-size:12px}
+    .navbtn{width:100%;text-align:left;margin:0 0 8px}.navbtn.active{border-color:var(--green);background:var(--greenLight);color:var(--green)}
+    .tbl{overflow:auto}table{width:100%;min-width:620px;border-collapse:collapse}th,td{border:1px solid #d9e8df;padding:8px}th{background:var(--greenLight);font-size:12px}
+    .total{margin-top:10px;border-top:2px dashed #cae3d2;padding-top:12px;display:grid;gap:10px;grid-template-columns:1fr}.total input{text-align:center;font-size:18px;font-weight:700}
+    .split{display:grid;gap:12px;grid-template-columns:1fr}.list{max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:10px}.li{padding:10px;border-bottom:1px solid #edf4f0;display:flex;justify-content:space-between;gap:8px}.li:last-child{border-bottom:none}
+    .bnav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);z-index:25}
+    .bnav .navbtn{margin:0;border:none;border-radius:0;text-align:center;font-size:12px;padding:10px 6px}
+    .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,23,13,.45);z-index:80;padding:16px}
+    .modal{width:min(680px,100%);max-height:92vh;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 22px 50px rgba(0,0,0,.2);padding:16px;animation:p .2s ease}
+    .login{width:min(360px,100%);text-align:center}.login img{width:70px;height:70px;border-radius:12px}.err{color:var(--red);font-size:12px;min-height:18px}
+    .shake{animation:s .35s ease}
+    .drop{border:2px dashed #a7c8b1;border-radius:10px;padding:18px;text-align:center;background:#f8fcf9}.drop.drag{background:#edf8f0;border-color:var(--green)}
+    #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:var(--green);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:90}#toast.show{opacity:1}
+    .rem{background:#fff9e8;border:1px solid #f6d99f;color:#8f600b;border-radius:12px;padding:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+    #print-area{width:720px;max-width:100%;margin:0 auto;border:1px solid #ddd;background:#fff;padding:18px}
+    .ph{display:grid;grid-template-columns:66px 1fr;gap:10px;align-items:center;border-bottom:2px solid #1a7a3c;padding-bottom:10px}.ph img{width:62px;height:62px;border:1px solid #ddd;border-radius:8px}.ph h1{margin:0;font-size:21px}.ph p{margin:2px 0;font-size:12px}
+    .pr{display:flex;justify-content:space-between;margin-top:10px;font-size:13px;font-weight:700}.bf{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.bx{border:1px solid #bbb;padding:8px;min-height:106px;font-size:12px}
+    .dc{text-align:center;margin:12px 0 8px}.dc h3{margin:0}.dc p{margin:4px 0 0;font-size:12px}
+    .pt{width:100%;border-collapse:collapse;font-size:12px}.pt th,.pt td{border:1px solid #444;padding:5px}
+    .sum{margin-top:10px;background:#e6f4ec;border:1px solid #b6d4c0;padding:8px;display:flex;justify-content:space-around;font-weight:700;font-size:13px;gap:10px}
+    .ns{margin-top:10px;padding:9px;border-left:5px solid var(--amber);background:#fff7e9;font-size:12px}.sg{margin-top:30px;text-align:right;font-size:12px}.ln{border-top:1px solid #000;width:170px;margin:26px 0 0 auto}
+    @media (min-width:768px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.split{grid-template-columns:1fr 1fr}.total{grid-template-columns:1fr 1fr}}
+    @media (min-width:1024px){.snav{display:block}.content{margin-left:var(--left);padding:18px;padding-bottom:24px}.bnav{display:none}}
+    @media print{body *{visibility:hidden!important}#print-area,#print-area *{visibility:visible!important}#print-area{position:absolute;left:0;top:0;width:100%;border:none}}
+    @keyframes f{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes p{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}@keyframes s{0%,100%{transform:none}25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-4px)}}
+  </style>
 </head>
 <body>
-    <header>
-        <h1>Delivery Challan Management System</h1>
-    </header>
-    <nav>
-        <ul>
-            <li><button id="tab-create">Create Challan</button></li>
-            <li><button id="tab-customers">Customers</button></li>
-            <li><button id="tab-history">History</button></li>
-        </ul>
-    </nav>
-    <main id="app">
-        <!-- Dynamic content will be injected here -->
+  <header class="topbar">
+    <div class="brand"><img id="logo-top" alt="logo"><div><div class="t">Delivery Challan Making System</div><div class="s">VNR Seeds Private Limited</div></div></div>
+    <div class="today" id="today"></div>
+  </header>
+  <div class="wrap">
+    <aside class="snav" id="snav"></aside>
+    <main class="content">
+      <div id="backup-rem" class="rem hidden"></div>
+      <section id="pg-create" class="page active"></section>
+      <section id="pg-history" class="page"></section>
+      <section id="pg-parties" class="page"></section>
+      <section id="pg-trans" class="page"></section>
     </main>
-    <footer>
-        <p>&copy; 2026 VNR Seeds Private Limited</p>
-    </footer>
-    <script>
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(() => console.log('Service Worker registered successfully.'))
-                .catch(err => console.error('Service Worker registration failed:', err));
-        }
-    </script>
+  </div>
+  <nav class="bnav" id="bnav"></nav>
+
+  <div id="login-ov" class="overlay hidden"><div class="modal login" id="login-box"><img id="logo-login" alt="logo"><h2>VNR Seeds Login</h2><p class="muted">Enter office password to continue</p><div class="field"><input id="login-pwd" type="password" placeholder="Password"></div><div id="login-err" class="err"></div><button class="btn primary" id="login-btn">Login</button></div></div>
+  <div id="backup-ov" class="overlay hidden"></div>
+  <div id="pwd-ov" class="overlay hidden"></div>
+  <div id="print-ov" class="overlay hidden"><div class="modal" style="width:min(760px,100%)"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h3>Print Preview</h3><div class="row"><button class="btn" id="print-close">Close</button><button class="btn primary" id="print-go">Print</button></div></div><div id="print-area"></div></div></div>
+  <div id="toast"></div>
+
+  <script>
+    const LOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABt0lEQVR4nO2a0W3CMBBFvyQYgA4wAEdwAEdwAEdwAEdwAEdwAF7mWBLQrmfEU5M0sQfDff7d2aY8rx7h6fX8fO2kQYQQQgghhBBC6Bf7f8Q6w9N4AZh8mB8j2x0Qh8E7wA5wV4AXgC6kR0x0m0xj8QvJfB3gA+Af4Y+Sl7R9y+g6z3zQqWQ8sVf7Xv1zRrYwU3C4k8Qx7j8B6C9N0f8l+u8w8wO7kO5WQbH7hY8lJ8k8K4+3wXrQ8fQ4yq6m7g7J5M9yQv5Pq0A8m3yJ6v0LQ5u8K2G5b9jv7H8Q6i1c4Q7E3J6X7Qw5qkQpYQjv5mM6r1j6v0R4t3Qx0Vf8x5wP2s7S6k9XQn4V6m2m6Y5b5n4k2q5x0g+0sY1j8H2EJ5i7b8S9o2z3Q8l2f7n4xjv0m7j9uYw3YH7m5wX8m8q8r2v9n9k8A1d2hLQh4g5hXf8h0m0y8d7r2LwD3mXQ7oA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2gA1gA2hD/AbYy3cYg8x+2AAAAAElFTkSuQmCC';
+    const C={name:'VNR Seeds Private Limited',addr:'Corporate Centre, Canal Road Crossing, Ring Road No. 01, Raipur-492006 (C.G.)',tel:'+91 0771-4350005-10',email:'info@vnrseeds.com',web:'www.vnrseeds.com'};
+    const K={ch:'vnr_challans',pt:'vnr_parties',tr:'vnr_transporters',pw:'vnr_app_pwd',bk:'vnr_last_backup',sz:'vnr_backup_snooze'},S='vnr_app_session',DEF='vnr1234';
+    let editRef=false,editParty=null,editTrans=null,editChallanRef=null;
+    const $=id=>document.getElementById(id),J=v=>{try{return JSON.parse(v)}catch{return null}},g=(k,d=[])=>J(localStorage.getItem(k))||d,s=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+    const two=n=>String(n).padStart(2,'0'),todayISO=()=>{const d=new Date();return `${d.getFullYear()}-${two(d.getMonth()+1)}-${two(d.getDate())}`},fdate=d=>new Date(d||Date.now()).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    const esc=t=>String(t||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    const fy=d=>{const x=new Date(d||todayISO()),y=x.getFullYear(),m=x.getMonth()+1,st=m>=4?y:y-1;return `${String(st).slice(-2)}-${String(st+1).slice(-2)}`};
+    const mon=d=>['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][new Date(d||todayISO()).getMonth()];
+    const pwd=()=>localStorage.getItem(K.pw)||DEF,ok=()=>sessionStorage.getItem(S)==='ok';
+    function t(msg){const x=$('toast');x.textContent=msg;x.classList.add('show');clearTimeout(t._);t._=setTimeout(()=>x.classList.remove('show'),3000)}
+    function ref(d){return `VSPL/${mon(d)}/${fy(d)}/${String(g(K.ch).length+1).padStart(3,'0')}`}
+    function setLogin(){ $('login-ov').classList.toggle('hidden',ok()); if(!ok()) setTimeout(()=>$('login-pwd').focus(),60); }
+    function login(){const v=$('login-pwd').value,e=$('login-err'),b=$('login-box');if(v===pwd()){sessionStorage.setItem(S,'ok');$('login-pwd').value='';e.textContent='';setLogin();t('Login successful')}else{e.textContent='Wrong password. Please try again.';b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake')}}
+    function logout(){if(confirm('Logout now?')){sessionStorage.removeItem(S);location.reload()}}
+    function nav(){
+      const d=[['create','➕ Create Challan'],['history','📋 History'],['parties','🏢 Parties'],['transporters','🚚 Transporters'],['backup','💾 Backup/Restore'],['password','🔑 Change Password'],['logout','🚪 Logout']];
+      const m=[['create','➕ Create'],['history','📋 History'],['parties','🏢 Parties'],['transporters','🚚 Transport'],['backup','💾 Backup']];
+      $('snav').innerHTML=d.map(([i,l])=>`<button class="btn navbtn" data-nav="${i}">${l}</button>`).join('');
+      $('bnav').innerHTML=m.map(([i,l])=>`<button class="btn navbtn" data-nav="${i}">${l}</button>`).join('');
+      [...document.querySelectorAll('[data-nav]')].forEach(b=>b.onclick=()=>go(b.dataset.nav)); active('create');
+    }
+    function active(id){[...document.querySelectorAll('[data-nav]')].forEach(b=>b.classList.toggle('active',b.dataset.nav===id))}
+    function go(id){if(id==='backup')return backupModal();if(id==='password')return pwdModal();if(id==='logout')return logout();show(id)}
+    function show(id){const M={create:'pg-create',history:'pg-history',parties:'pg-parties',transporters:'pg-trans'};Object.values(M).forEach(p=>$(p).classList.remove('active'));$(M[id]).classList.add('active');active(id);if(id==='history')historyPage();if(id==='parties')partiesPage();if(id==='transporters')transportersPage();if(id==='create')refreshDD()}
+    function challanFromForm(){
+      const items=[...document.querySelectorAll('.it')].map(r=>({desc:r.querySelector('.d').value.trim(),qty:r.querySelector('.q').value.trim(),unit:r.querySelector('.u').value})).filter(i=>i.desc||i.qty);
+      return {ref:$('ref').value.trim(),date:$('date').value,fy:$('fy').value,transport:$('mode').value,transName:$('tname').value.trim(),docket:$('docket').value.trim(),recvName:$('rname').value.trim(),recvCo:$('rco').value.trim(),recvAddr:$('raddr').value.trim(),recvCity:$('rcity').value.trim(),recvPin:$('rpin').value.trim(),recvState:$('rstate').value.trim(),recvMobile:$('rmob').value.trim(),recvContact:$('rcon').value.trim(),openingLine:$('oline').value.trim(),purpose:$('purpose').value,items,totalBoxes:$('boxes').value.trim(),totalWeight:$('weight').value.trim(),notes:$('notes').value.trim(),createdAt:new Date().toISOString()}
+    }
+    function valid(c){if(!c.ref)return'Ref No is required';if(!c.date)return'Date is required';if(!c.recvName)return'Party/Branch Name is required';if(!c.recvAddr)return'Address is required';if(!c.transport)return'Mode of Transport is required';if(!c.items.length)return'Add at least one item';return''}
+    function itemRow(it={desc:'',qty:'',unit:'Pcs'}){const b=$('items-body'),tr=document.createElement('tr');tr.className='it';tr.innerHTML=`<td class="mono"></td><td><input class="d" value="${esc(it.desc)}"></td><td><input class="q" value="${esc(it.qty)}"></td><td><select class="u">${['Pcs','Bags','Boxes','Kg','Nos','Sets','Rolls','Ltrs'].map(u=>`<option ${u===it.unit?'selected':''}>${u}</option>`).join('')}</select></td><td><button class="btn red small x">✕</button></td>`;tr.querySelector('.x').onclick=()=>{tr.remove();renum();if(!$('items-body').children.length)itemRow()};b.appendChild(tr);renum()}
+    function renum(){[...$('items-body').children].forEach((r,i)=>r.children[0].textContent=i+1)}
+    function resetForm(resetR=true){
+      $('date').value=todayISO();$('fy').value=fy(todayISO());if(resetR)$('ref').value=ref(todayISO());$('ref').readOnly=true;editRef=false;$('edit-ref').textContent='Edit';
+      ['tname','docket','rname','rco','raddr','rcity','rpin','rstate','rmob','rcon','notes','boxes','weight'].forEach(i=>$(i).value='');
+      $('mode').value='Courier';$('oline').value='This is to certify that we are sending here with';$('purpose').value='Internal Use';$('party-dd').value='';$('trans-dd').value='';$('items-body').innerHTML='';itemRow();editChallanRef=null;
+    }
+    function createPage(){
+      $('pg-create').innerHTML=`<div class="card"><h2>Create Challan</h2><p class="muted">Fill details and save/preview delivery challan</p></div>
+      <div class="card"><h3>A. Reference</h3><div class="grid g3"><div class="field"><label>Ref No</label><input id="ref" class="mono" readonly><button id="edit-ref" class="btn small">Edit</button></div><div class="field"><label>Date</label><input id="date" type="date"></div><div class="field"><label>Financial Year</label><input id="fy" class="mono" readonly></div></div></div>
+      <div class="card"><h3>B. Transport</h3><div class="row"><div class="field"><label>Load Saved Transporter</label><select id="trans-dd"><option value="">Select transporter</option></select></div><div class="field" style="max-width:190px;align-self:end"><button class="btn" id="qsave-trans">💾 Save current</button></div></div><div class="grid g3"><div class="field"><label>Mode of Transport</label><select id="mode"><option>Courier</option><option>Road Transport</option><option>By Hand</option><option>Air</option><option>Train</option><option>Other</option></select></div><div class="field"><label>Courier/Transporter Name</label><input id="tname"></div><div class="field"><label>Docket/AWB No</label><input id="docket"></div></div></div>
+      <div class="card"><h3>C. Receiver (TO)</h3><div class="row"><div class="field"><label>Load Saved Party</label><select id="party-dd"><option value="">Select party</option></select></div><div class="field" style="max-width:190px;align-self:end"><button class="btn" id="qsave-party">💾 Save as Party</button></div></div><div class="grid g2"><div class="field"><label>Party/Branch Name *</label><input id="rname"></div><div class="field"><label>C/O</label><input id="rco"></div></div><div class="field" style="margin-top:10px"><label>Address *</label><textarea id="raddr"></textarea></div><div class="grid g2" style="margin-top:10px"><div class="field"><label>City</label><input id="rcity"></div><div class="field"><label>PIN</label><input id="rpin"></div></div><div class="grid g2" style="margin-top:10px"><div class="field"><label>State</label><input id="rstate"></div><div class="field"><label>Mobile</label><input id="rmob"></div></div><div class="field" style="margin-top:10px"><label>Contact Person</label><input id="rcon"></div></div>
+      <div class="card"><h3>D. Items</h3><div class="grid g2"><div class="field"><label>Opening Line</label><input id="oline"></div><div class="field"><label>Purpose</label><select id="purpose"><option>Internal Use</option><option>Promotion Demo</option><option>Testing QC</option><option>R&D</option><option>Custom...</option></select></div></div><div class="tbl" style="margin-top:10px"><table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Unit</th><th>✕</th></tr></thead><tbody id="items-body"></tbody></table></div><div style="margin-top:10px"><button class="btn" id="add-item">+ Add Item Row</button></div><div class="total"><div class="field"><label>Total No. of Boxes</label><input id="boxes"></div><div class="field"><label>Total Weight</label><input id="weight"></div></div></div>
+      <div class="card"><h3>E. Remarks</h3><textarea id="notes"></textarea><div class="row" style="margin-top:10px"><button class="btn" id="clear">Clear</button><button class="btn warn" id="preview">👁️ Preview</button><button class="btn primary" id="save">💾 Save Challan</button></div></div>`;
+      $('edit-ref').onclick=()=>{editRef=!editRef;$('ref').readOnly=!editRef;$('edit-ref').textContent=editRef?'Lock':'Edit'};
+      $('date').onchange=()=>{$('fy').value=fy($('date').value);if(!editRef&&!editChallanRef)$('ref').value=ref($('date').value)};
+      $('add-item').onclick=()=>itemRow();$('clear').onclick=()=>{if(confirm('Clear all form fields?')){resetForm(true);t('Form cleared')}};$('preview').onclick=()=>{const c=challanFromForm(),e=valid(c);if(e)return t(e);openPrint(c)};$('save').onclick=saveChallan;
+      $('qsave-party').onclick=qsaveParty;$('qsave-trans').onclick=qsaveTrans;$('party-dd').onchange=loadParty;$('trans-dd').onchange=loadTrans;
+      resetForm(true);refreshDD();
+    }
+    function saveChallan(){
+      const c=challanFromForm(),e=valid(c);if(e)return t(e);const a=g(K.ch);
+      if(editChallanRef){const i=a.findIndex(x=>x.ref===editChallanRef);if(i>-1)a[i]={...a[i],...c};else a.push(c)}
+      else{if(a.some(x=>x.ref===c.ref))return t('Ref No already exists');a.push(c)}
+      s(K.ch,a);editChallanRef=null;resetForm(true);historyPage();t('Challan saved')
+    }
+    function refreshDD(){
+      const p=g(K.pt),tps=g(K.tr);
+      const pd=$('party-dd'); if(pd) pd.innerHTML='<option value="">Select party</option>'+p.map(x=>`<option value="${x.id}">${esc(x.name)}${x.city?' - '+esc(x.city):''}</option>`).join('');
+      const td=$('trans-dd'); if(td) td.innerHTML='<option value="">Select transporter</option>'+tps.map(x=>`<option value="${x.id}">${esc(x.name)} (${esc(x.mode||'')})</option>`).join('');
+    }
+    function qsaveParty(){const name=$('rname').value.trim(),address=$('raddr').value.trim();if(!name||!address)return t('Party name and address required');const a=g(K.pt);a.push({id:crypto.randomUUID(),name,co:$('rco').value.trim(),address,city:$('rcity').value.trim(),pin:$('rpin').value.trim(),state:$('rstate').value.trim(),mobile:$('rmob').value.trim(),contact:$('rcon').value.trim(),createdAt:new Date().toISOString()});s(K.pt,a);refreshDD();t('Party saved')}
+    function qsaveTrans(){const name=$('tname').value.trim(),mode=$('mode').value;if(!name)return t('Transporter name required');const a=g(K.tr);a.push({id:crypto.randomUUID(),name,mode,phoneNotes:$('docket').value.trim(),createdAt:new Date().toISOString()});s(K.tr,a);refreshDD();t('Transporter saved')}
+    function loadParty(){const p=g(K.pt).find(x=>x.id===$('party-dd').value);if(!p)return;$('rname').value=p.name||'';$('rco').value=p.co||'';$('raddr').value=p.address||'';$('rcity').value=p.city||'';$('rpin').value=p.pin||'';$('rstate').value=p.state||'';$('rmob').value=p.mobile||'';$('rcon').value=p.contact||''}
+    function loadTrans(){const x=g(K.tr).find(i=>i.id===$('trans-dd').value);if(!x)return;$('mode').value=x.mode||'Courier';$('tname').value=x.name||'';if(!$('docket').value)$('docket').value=x.phoneNotes||''}
+    function historyPage(){
+      const all=g(K.ch);
+      $('pg-history').innerHTML=`<div class="card"><h2>History</h2><div class="grid g3"><div class="field"><label>Search</label><input id="hsearch" placeholder="ref / party / date / transporter"></div><div class="field" style="align-self:end"><button class="btn" id="csv">📊 Export Excel</button></div><div class="field" style="align-self:end"><div class="muted" id="hcount" style="font-weight:700">0 challans</div></div></div></div><div id="hlist"></div>`;
+      function paint(){const q=($('hsearch').value||'').toLowerCase().trim();const a=all.filter(c=>[c.ref,c.recvName,c.date,c.transport,c.transName,c.recvCity].join(' ').toLowerCase().includes(q));$('hcount').textContent=`${a.length} challan${a.length!==1?'s':''}`;const l=$('hlist');if(!a.length){l.innerHTML='<div class="card">No challans found.</div>';return}
+        l.innerHTML=a.slice().reverse().map(c=>`<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="mono"><strong>${esc(c.ref)}</strong></div><div class="muted">${esc(c.date)} • ${esc(c.recvName)}${c.recvCity?', '+esc(c.recvCity):''}</div><div class="muted">${esc(c.transport)}${c.transName?' - '+esc(c.transName):''}</div></div><div class="row"><button class="btn small" data-v="${esc(c.ref)}">👁️ View & Print</button><button class="btn red small" data-d="${esc(c.ref)}">🗑️ Delete</button></div></div></div>`).join('');
+        l.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const c=g(K.ch).find(x=>x.ref===b.dataset.v);if(c)openPrint(c)});
+        l.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{if(!confirm(`Delete challan ${b.dataset.d}?`))return;s(K.ch,g(K.ch).filter(x=>x.ref!==b.dataset.d));historyPage();resetForm(true);t('Challan deleted')});
+      }
+      $('hsearch').oninput=paint;$('csv').onclick=csv;paint();
+    }
+    function partiesPage(){
+      $('pg-parties').innerHTML=`<div class="card"><h2>Parties</h2></div><div class="split"><div class="card"><h3 id="ptitle">➕ Add Party</h3><div class="grid g2"><div class="field"><label>Name</label><input id="pn"></div><div class="field"><label>C/O</label><input id="pco"></div></div><div class="field" style="margin-top:8px"><label>Address</label><textarea id="pa"></textarea></div><div class="grid g2" style="margin-top:8px"><div class="field"><label>City</label><input id="pc"></div><div class="field"><label>PIN</label><input id="pp"></div></div><div class="grid g2" style="margin-top:8px"><div class="field"><label>State</label><input id="ps"></div><div class="field"><label>Mobile</label><input id="pm"></div></div><div class="field" style="margin-top:8px"><label>Contact</label><input id="pct"></div><div class="row" style="margin-top:10px"><button class="btn" id="pclear">Clear</button><button class="btn primary" id="psave">Save Party</button></div></div><div class="card"><h3>Saved Parties</h3><div id="plist" class="list"></div></div></div>`;
+      const clear=()=>{['pn','pco','pa','pc','pp','ps','pm','pct'].forEach(i=>$(i).value='');editParty=null;$('ptitle').textContent='➕ Add Party'};
+      const paint=()=>{const a=g(K.pt);$('plist').innerHTML=a.map(p=>`<div class="li"><div style="cursor:pointer" data-e="${p.id}"><strong>${esc(p.name||'')}</strong><br><span class="muted">${esc(p.city||'')} ${esc(p.mobile||'')}</span></div><button class="btn red small" data-d="${p.id}">✕</button></div>`).join('')||'<div class="li">No parties saved.</div>';
+        $('plist').querySelectorAll('[data-e]').forEach(e=>e.onclick=()=>{const p=g(K.pt).find(x=>x.id===e.dataset.e);if(!p)return;editParty=p.id;$('ptitle').textContent='✏️ Edit Party';$('pn').value=p.name||'';$('pco').value=p.co||'';$('pa').value=p.address||'';$('pc').value=p.city||'';$('pp').value=p.pin||'';$('ps').value=p.state||'';$('pm').value=p.mobile||'';$('pct').value=p.contact||''});
+        $('plist').querySelectorAll('[data-d]').forEach(e=>e.onclick=()=>{if(!confirm('Delete party?'))return;s(K.pt,g(K.pt).filter(x=>x.id!==e.dataset.d));paint();refreshDD();t('Party deleted')});
+      };
+      $('pclear').onclick=clear;$('psave').onclick=()=>{const name=$('pn').value.trim(),address=$('pa').value.trim();if(!name||!address)return t('Name and address are required');const a=g(K.pt),p={id:editParty||crypto.randomUUID(),name,co:$('pco').value.trim(),address,city:$('pc').value.trim(),pin:$('pp').value.trim(),state:$('ps').value.trim(),mobile:$('pm').value.trim(),contact:$('pct').value.trim(),createdAt:new Date().toISOString()},i=a.findIndex(x=>x.id===p.id);if(i>-1)a[i]=p;else a.push(p);s(K.pt,a);clear();paint();refreshDD();t('Party saved')};paint();
+    }
+    function transportersPage(){
+      $('pg-trans').innerHTML=`<div class="card"><h2>Transporters</h2></div><div class="split"><div class="card"><h3 id="ttitle">➕ Add Transporter</h3><div class="field"><label>Name</label><input id="tn"></div><div class="field" style="margin-top:8px"><label>Mode</label><select id="tm"><option>Courier</option><option>Road Transport</option><option>By Hand</option><option>Air</option><option>Train</option><option>Other</option></select></div><div class="field" style="margin-top:8px"><label>Phone/Notes</label><input id="tno"></div><div class="row" style="margin-top:10px"><button class="btn" id="tclear">Clear</button><button class="btn primary" id="tsave">Save Transporter</button></div></div><div class="card"><h3>Saved Transporters</h3><div id="tlist" class="list"></div></div></div>`;
+      const clear=()=>{editTrans=null;$('ttitle').textContent='➕ Add Transporter';$('tn').value='';$('tm').value='Courier';$('tno').value=''};
+      const paint=()=>{const a=g(K.tr);$('tlist').innerHTML=a.map(x=>`<div class="li"><div style="cursor:pointer" data-e="${x.id}"><strong>${esc(x.name||'')}</strong><br><span class="muted">${esc(x.mode||'')} ${esc(x.phoneNotes||'')}</span></div><button class="btn red small" data-d="${x.id}">✕</button></div>`).join('')||'<div class="li">No transporters saved.</div>';
+        $('tlist').querySelectorAll('[data-e]').forEach(e=>e.onclick=()=>{const x=g(K.tr).find(i=>i.id===e.dataset.e);if(!x)return;editTrans=x.id;$('ttitle').textContent='✏️ Edit Transporter';$('tn').value=x.name||'';$('tm').value=x.mode||'Courier';$('tno').value=x.phoneNotes||''});
+        $('tlist').querySelectorAll('[data-d]').forEach(e=>e.onclick=()=>{if(!confirm('Delete transporter?'))return;s(K.tr,g(K.tr).filter(i=>i.id!==e.dataset.d));paint();refreshDD();t('Transporter deleted')});
+      };
+      $('tclear').onclick=clear;$('tsave').onclick=()=>{const name=$('tn').value.trim();if(!name)return t('Transporter name is required');const a=g(K.tr),x={id:editTrans||crypto.randomUUID(),name,mode:$('tm').value,phoneNotes:$('tno').value.trim(),createdAt:new Date().toISOString()},i=a.findIndex(v=>v.id===x.id);if(i>-1)a[i]=x;else a.push(x);s(K.tr,a);clear();paint();refreshDD();t('Transporter saved')};paint();
+    }
+    function pwdModal(){
+      const o=$('pwd-ov');o.classList.remove('hidden');o.innerHTML=`<div class="modal" style="width:min(420px,100%)"><h3>Change Password</h3><div class="field"><label>Current Password</label><input id="c1" type="password"></div><div class="field" style="margin-top:8px"><label>New Password (min 4 chars)</label><input id="c2" type="password"></div><div class="field" style="margin-top:8px"><label>Confirm Password</label><input id="c3" type="password"></div><div class="err" id="cerr"></div><div class="row" style="justify-content:flex-end"><button class="btn" id="cc">Cancel</button><button class="btn primary" id="cs">Save</button></div></div>`;
+      $('cc').onclick=()=>o.classList.add('hidden');$('cs').onclick=()=>{const a=$('c1').value,b=$('c2').value,c=$('c3').value,e=$('cerr');if(a!==pwd())return e.textContent='Current password is incorrect';if(b.length<4)return e.textContent='New password must be at least 4 characters';if(b!==c)return e.textContent='Confirm password does not match';localStorage.setItem(K.pw,b);o.classList.add('hidden');t('Password changed')};
+    }
+    function backupModal(){
+      const o=$('backup-ov');o.classList.remove('hidden');const ch=g(K.ch),pt=g(K.pt),tr=g(K.tr),lb=localStorage.getItem(K.bk);
+      o.innerHTML=`<div class="modal"><div class="row" style="justify-content:space-between;align-items:center"><h3>Backup / Restore</h3><button class="btn" id="bc">Close</button></div><div class="card"><div class="grid g3"><div><strong>${ch.length}</strong><div class="muted">Total Challans</div></div><div><strong>${pt.length}</strong><div class="muted">Total Parties</div></div><div><strong>${tr.length}</strong><div class="muted">Total Transporters</div></div></div><div class="muted" style="margin-top:8px">Last backup: ${lb?new Date(lb).toLocaleString('en-IN'):'Never'}</div></div><div class="card"><h3>Export Backup</h3><button class="btn primary" id="be">Export Backup JSON</button></div><div class="card"><h3>Import / Restore</h3><input type="file" id="bf" accept=".json"><div class="drop" id="dz" style="margin-top:10px">Drag & Drop backup .json file here</div><div id="rv" class="muted" style="margin-top:10px"></div><div class="row" style="margin-top:8px"><button class="btn warn" id="br" disabled>Restore Backup</button></div></div><div class="card"><h3>Export Excel / CSV</h3><button class="btn" id="becsv">📊 Export CSV</button></div></div>`;
+      $('bc').onclick=()=>o.classList.add('hidden');$('be').onclick=backupExport;$('becsv').onclick=csv;
+      const dz=$('dz'),bf=$('bf'),rv=$('rv');let fileData=null;
+      const parse=f=>{if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||d.app!=='VNR_Delivery_Challan_System')throw Error('Invalid backup source');if(!Array.isArray(d.challans)||!Array.isArray(d.parties)||!Array.isArray(d.transporters))throw Error('Invalid backup structure');fileData=d;rv.innerHTML=`Will restore: <strong>${d.challans.length}</strong> challans, <strong>${d.parties.length}</strong> parties, <strong>${d.transporters.length}</strong> transporters.`;$('br').disabled=false;t('Backup file validated')}catch(e){fileData=null;$('br').disabled=true;rv.textContent=`Validation failed: ${e.message}`}};r.readAsText(f)};
+      bf.onchange=()=>parse(bf.files[0]);dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};dz.ondragleave=()=>dz.classList.remove('drag');dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');parse(e.dataTransfer.files[0])};
+      $('br').onclick=()=>{if(!fileData)return;if(!confirm('This will overwrite current data. Continue?'))return;s(K.ch,fileData.challans);s(K.pt,fileData.parties);s(K.tr,fileData.transporters);if(fileData.password)localStorage.setItem(K.pw,fileData.password);localStorage.setItem(K.bk,new Date().toISOString());o.classList.add('hidden');renderAll();t('Backup restored')};
+    }
+    function backupExport(){
+      const p={app:'VNR_Delivery_Challan_System',version:'1.0',exportedAt:new Date().toISOString(),company:C.name,challans:g(K.ch),parties:g(K.pt),transporters:g(K.tr),password:pwd()};
+      dl(`VNR_Backup_${todayISO()}.json`,JSON.stringify(p,null,2),'application/json');localStorage.setItem(K.bk,new Date().toISOString());localStorage.removeItem(K.sz);backupReminder();t('Backup exported')
+    }
+    function csv(){
+      const d=g(K.ch);if(!d.length)return t('No challans to export');
+      const h=['ref','date','fy','transport','transName','docket','recvName','recvCo','recvAddr','recvCity','recvPin','recvState','recvMobile','recvContact','openingLine','purpose','items','totalBoxes','totalWeight','notes','createdAt'];
+      const rows=d.map(c=>h.map(k=>`"${String(k==='items'?(c.items||[]).map(i=>`${i.desc} (${i.qty} ${i.unit})`).join(' | '):(c[k]??'')).replaceAll('"','""')}"`).join(','));
+      dl(`VNR_Challans_${todayISO()}.csv`,[h.join(','),...rows].join('\n'),'text/csv;charset=utf-8;');t('CSV exported')
+    }
+    function dl(name,content,type){const b=new Blob([content],{type}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+    function openPrint(c){
+      const to=[c.recvName,c.recvCo&&`C/O: ${c.recvCo}`,c.recvAddr,`${c.recvCity||''}${c.recvPin?' - '+c.recvPin:''}`,`${c.recvState||''}${c.recvMobile?' | Mob: '+c.recvMobile:''}`,c.recvContact&&`Contact: ${c.recvContact}`].filter(Boolean).join('<br>');
+      const from=`${C.name}<br>${C.addr}<br>Tel: ${C.tel}<br>Email: ${C.email}`;
+      $('print-area').innerHTML=`<div class="ph"><img src="${LOGO}" alt="logo"><div><h1>${C.name}</h1><p><strong>Administrative Office</strong></p><p>${C.addr}</p><p>Tel: ${C.tel} | Email: ${C.email} | Web: ${C.web}</p></div></div><div class="pr mono"><div>Ref No: ${esc(c.ref)}</div><div>Date: ${esc(c.date)}</div></div><div class="bf"><div class="bx"><strong>TO</strong><br>${to}</div><div class="bx"><strong>FROM</strong><br>${from}</div></div><div class="dc"><h3>Delivery Challan</h3><p>(Supply without consideration)</p></div><div style="font-size:12px;margin-bottom:8px">${esc(c.openingLine||'')} <strong>${esc(c.purpose||'')}</strong></div><table class="pt"><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${(c.items||[]).map((i,n)=>`<tr><td>${n+1}</td><td>${esc(i.desc||'')}</td><td>${esc(i.qty||'')}</td><td>${esc(i.unit||'')}</td></tr>`).join('')}</tbody></table><div class="sum"><div>Total Boxes: ${esc(c.totalBoxes||'-')}</div><div>Total Weight: ${esc(c.totalWeight||'-')}</div></div><div style="margin-top:8px;font-size:12px"><strong>Through by:</strong> ${esc(c.transport||'')} – ${esc(c.transName||'')} ${c.docket?`| <strong>Docket:</strong> ${esc(c.docket)}`:''}</div>${c.notes?`<div style="margin-top:8px;font-size:12px"><strong>Remarks:</strong> ${esc(c.notes)}</div>`:''}<div class="ns"><strong>Not for Sale</strong> — Material supplied for official purpose only.</div><div class="sg"><div class="ln"></div>Authorized Signatory</div>`;
+      $('print-ov').classList.remove('hidden');
+    }
+    function backupReminder(){
+      const x=$('backup-rem'),last=localStorage.getItem(K.bk),sz=localStorage.getItem(K.sz),now=new Date();let show=false;
+      if(!last)show=true;else show=((now-new Date(last))/(1000*60*60*24))>=7;if(sz&&now<new Date(sz))show=false;
+      if(!show){x.classList.add('hidden');x.innerHTML='';return}
+      x.classList.remove('hidden');x.innerHTML=`<div><strong>Backup reminder:</strong> It has been over 7 days since last backup.</div><div class="row"><button class="btn small" id="bn">Backup Now</button><button class="btn small" id="bl">Remind Later</button></div>`;
+      $('bn').onclick=()=>backupModal();$('bl').onclick=()=>{localStorage.setItem(K.sz,new Date(Date.now()+2*24*60*60*1000).toISOString());backupReminder()}
+    }
+    function bind(){ $('login-btn').onclick=login;$('login-pwd').onkeydown=e=>{if(e.key==='Enter')login()};$('print-close').onclick=()=>$('print-ov').classList.add('hidden');$('print-go').onclick=()=>window.print();$('today').textContent=`Today: ${fdate()}`;$('logo-top').src=LOGO;$('logo-login').src=LOGO }
+    function renderAll(){createPage();historyPage();partiesPage();transportersPage();refreshDD();backupReminder();show('create')}
+    function init(){nav();bind();renderAll();setLogin()}
+    init();
+  </script>
 </body>
 </html>
